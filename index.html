@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+ <head>
+ 	<title>MDT9K s01e02</title>
+ 	<meta charset='utf-8'>
+	<link rel="shortcut icon" type="image/png" href="favicon.png"/>
+ 	<style>
+
+@font-face {
+	font-family: 'Orbitron';
+	src: url('Orbitron-Bold.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+body {
+	background: url('ff_warpath_cliff_001.jpg');
+	overflow: hidden;
+	padding: 0px;
+	margin: 0px;
+}
+.aligncenter {
+	position: absolute;
+	top: 0px;
+	width: 100%;
+	text-align: center;
+	margin: auto;
+}
+
+#message {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	font-family: 'Orbitron';
+	color: #fff;
+	width: 100%;
+	height: 100%;
+	margin: auto;
+	text-align: center;
+	font-size: 35px;
+	overflow-y: hidden;
+	text-shadow: 2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000, 1px 1px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+	line-height: 2em;
+}
+
+#message span {
+	position: relative;
+	top: 35%;
+	transform: translateY(-50%);
+}
+
+@-webkit-keyframes fade-in {
+	0% {
+		opacity: 0;
+	}
+	100% {
+		opacity: 1;
+	}
+}
+
+.fade-in {
+	opacity: 0;
+	-webkit-animation-name: fade-in;
+	-webkit-animation-duration: 6s;
+	-webkit-animation-timing-function: ease;
+	-webkit-animation-iteration-count: 2;
+	-webkit-animation-direction: alternate;
+}
+
+	#countdown {
+		position: absolute;
+		top: 0px;
+		left: 0px;
+		font-family: 'Orbitron', cursive;
+		color: white;
+		width: 100%;
+		height: 100%;
+		margin: auto;
+		text-align: center;
+		font-size: 2em;
+		overflow-y: hidden;
+		text-shadow: 2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000, 1px 1px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+		/*text-shadow: 2px 0 0 #fff, -2px 0 0 #fff, 0 2px 0 #fff, 0 -2px 0 #fff, 1px 1px #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;*/
+		line-height: 2em;
+		z-index: 21;
+	}
+	
+	a:link, a:visited, a:hover, a:active {
+		color: white;
+	}
+	
+ 	</style>
+	<script src="requestanimationframe.js"></script>
+  	<script type="application/javascript">
+
+rand = function(n){
+	return Math.floor(Math.random()*n);
+};
+
+var rms = 0;
+
+var is_chrome = navigator.userAgent.indexOf('Chrome') > -1;
+//var is_explorer = navigator.userAgent.indexOf('MSIE') > -1;
+//var is_firefox = navigator.userAgent.indexOf('Firefox') > -1;
+var is_safari = navigator.userAgent.indexOf("Safari") > -1;
+//var is_opera = navigator.userAgent.indexOf("Presto") > -1;
+if ((is_chrome)&&(is_safari)) {is_safari=false;}
+
+function init() {
+	    
+	var context;
+
+	try {
+		// Fix up for prefixing
+		window.AudioContext = window.AudioContext||window.webkitAudioContext;
+		context = new AudioContext();
+
+		var request = new XMLHttpRequest();
+		if (is_safari) request.open('GET', '02 - Wright & Bastard - Light Gray.m4a', true);
+			else request.open('GET', '02 - Wright & Bastard - Light Gray.ogg', true);
+		request.responseType = 'arraybuffer';
+		console.log('requesting');
+
+		// Decode asynchronously
+		request.onload = function() {
+			context.decodeAudioData(request.response, function(buffer) {
+	  
+				backgroundAudio = context.createBufferSource(); 	// creates a sound source
+				backgroundAudio.buffer = buffer;                    // tell the source which sound to play
+				backgroundAudio.connect(context.destination);       // connect the source to the context's destination (the speakers)
+				backgroundAudio.loop = true;
+				backgroundAudio.start(0);
+	  
+				var levelChecker = context.createScriptProcessor(1024, 2, 2);
+				backgroundAudio.connect(levelChecker);
+				levelChecker.connect(context.destination);
+				//console.log('connecting');
+
+				levelChecker.onaudioprocess = process;
+			
+				// start canvas
+				drawCanvas();
+	  
+				console.log('decoded');
+
+	  
+			}, function(evt) {
+				console.log('failed to load buffer');
+				console.log(evt);
+			});
+		}
+		request.send();
+
+	} catch(e) {
+		console.log('Web Audio API is not supported in this browser');
+		drawCanvas();
+	}
+
+}
+
+var process = function(e) {
+	var buffer = e.inputBuffer.getChannelData(0);
+	var len = buffer.length; 
+	var total = 0;
+	var i = 0;
+	
+	while ( i < len ) total += Math.abs( buffer[i++] );
+	
+	rms = (rms + Math.sqrt( total / len )) * 0.5;
+}
+
+var w;
+var h;
+var ctx;
+
+function drawCanvas() {
+
+	resize();
+
+	var num = 15;
+	var angle = (Math.PI*2)/num;
+	var size = 150;
+	var opening, phase1, phase2;
+	var maxj = 50;
+
+	function drawThis() {
+		var d = new Date();
+		var timer = d.getTime();
+		
+		phase1 = timer/25000;
+		phase2 = timer/2500;
+		
+		for (var j=maxj*0.5; j<maxj; j++) {
+		
+			var posX = w*(0.5) + Math.sin(phase2*0.25)*j*10;
+			var posY = h*(0.5) - Math.cos(phase2*0.25)*j*10;
+		
+			var thisb = 200 - parseInt(Math.sin(phase2*0.5 + j)*35, 10);
+			color = "rgba("+thisb+","+thisb+","+thisb+","+(0.02*((maxj-j)/maxj)+rms*0.15)+")";
+			ctx.fillStyle = color;
+			var i = parseInt(((Math.sin(phase1) - Math.sin(phase2))+1.0)*0.5*num*0.33,10);
+			opening = Math.sin(i*angle)*10 + j*20;
+			ctx.save();
+			ctx.translate( posX+Math.sin(i*angle+phase1)*opening, posY+Math.cos(i*angle+phase1)*opening );
+			ctx.rotate(i*angle+Math.sin(phase2+Math.sin(i*angle)+j*0.5)*3);
+			ctx.beginPath();
+			ctx.moveTo(-size*.5*j,-size*.5*j);
+			ctx.lineTo(0,size);
+			ctx.lineTo(size*.5*j,-size*.5*j);
+			ctx.fill();
+			ctx.closePath();
+			ctx.restore();
+			
+			
+			
+			
+		}
+		
+	}
+	
+	requestAnimationFrame( animate );
+	
+	document.getElementById('message').innerHTML = '';
+	setTimeout("startText()",5000);
+	
+	var d = new Date();
+	var n = d.getTime();
+	var scrollvalue = 0;
+
+	function animate() {
+		requestAnimationFrame( animate );
+		ctx.clearRect(0,0,w,h);
+		drawThis();
+		var dom2 = document.getElementById('countdown');
+		if (dom2) {
+			dom2.innerHTML = getDiff();
+		}
+	}
+}
+
+window.onresize = resize;
+
+function resize() {
+	w = window.innerWidth;
+	h = window.innerHeight;
+	
+	var canvas = document.getElementById("canvas");
+	canvas.setAttribute("width", w);
+	canvas.setAttribute("height", h);
+	
+	ctx = canvas.getContext("2d");
+	ctx.width = w;
+	ctx.height = h;
+}
+
+function startText() {
+	loadFirstScreen();
+	var timerloop = 15;
+	setTimeout("loadSecondScreen()",timerloop*1000);	
+	setTimeout("loadThirdScreen()",timerloop*2000); 	
+	setTimeout("startText()",timerloop*3000);
+}
+
+function loadFirstScreen() {
+  	var content = '';
+	thisclass = '';
+	if (is_chrome) thisclass='class="fade-in"';
+ 	content += '<span '+thisclass+'>Mystery Demoscene Theater 9000</span><br />';
+ 	content += '<span '+thisclass+'>Season 1 Episode 2</span><br />';
+ 	content += '<span '+thisclass+'>Demoscene commentary livestream</span>';
+ 	document.getElementById('message').innerHTML = content;
+}
+ 
+function loadSecondScreen() {
+  	var content = '';
+ 	content += '<span '+thisclass+'>June 23rd, 2016</span><br />';
+ 	content += '<span '+thisclass+'>21:00 GMT</span><br />';
+ 	content += '<span '+thisclass+'><a href="http://twitch.tv/psenough">http://twitch.tv/psenough</a></span><br />';
+ 	document.getElementById('message').innerHTML = content;
+}
+
+function loadThirdScreen() {
+  	var content = '';
+ 	content += '<span '+thisclass+'>Credits</span><br />';
+ 	content += '<span '+thisclass+'>Code: ps</span><br />';
+ 	content += '<span '+thisclass+'>Music: <a href="http://www.wrightandbastard.com/music/051">Wright & Bastard</a></span>';
+ 	document.getElementById('message').innerHTML = content;
+}
+
+function getDiff() {
+	var output = '';
+	var date1 = new Date();
+	var date2 = new Date(2016, 6, 23, 21, 0, 0, 0);
+	var diff = new Date(date2.getTime() - date1.getTime());
+	var seconds = diff.getSeconds();
+	var minutes = diff.getMinutes();
+	var hours = diff.getHours();
+	var days = diff.getDate()-1;
+	if (days < 30) {
+		if (days > 0) output += days + ' days ';
+		if (hours > 0) output += hours + ' hours ';
+		if (minutes > 0) output += minutes + ' minutes ';
+		if (seconds > 0) output += seconds + ' seconds ';
+		output += 'till showtime';
+	} else {
+		output = 'live now at <a href=\"http://twitch.tv/psenough\">http://twitch.tv/psenough</a>';
+	}
+	return output;
+}
+
+  </script>
+ </head>
+ <body onload="init()">
+ 	<div class="aligncenter">
+   		<canvas id="canvas" width="800" height="600"></canvas>
+		<div id="message">shooting stars from my space bars</div>
+		<div id="countdown"></div>		
+   	</div>
+ </body>
+</html>
